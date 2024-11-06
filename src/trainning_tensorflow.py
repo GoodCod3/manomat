@@ -37,7 +37,7 @@ model = tf.keras.models.Sequential([
     tf.keras.layers.MaxPooling2D((2, 2)),
     tf.keras.layers.Flatten(),
     tf.keras.layers.Dense(128, activation='relu'),
-    tf.keras.layers.Dense(11, activation='softmax')  # 11 clases (0-9 más posiblemente una clase extra)
+    tf.keras.layers.Dense(10, activation='softmax')  # 11 clases (0-9 más posiblemente una clase extra)
 ])
 
 # Compilar el modelo
@@ -48,3 +48,6 @@ model.fit(train_data, validation_data=validation_data, epochs=10)
 
 # Guardar el modelo para usarlo más adelante
 model.save('hand_gesture_number_model.h5')
+
+loss, accuracy = model.evaluate(validation_data)
+print(f'Precisión del modelo: {accuracy * 100:.2f}%')

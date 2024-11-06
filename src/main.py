@@ -1,52 +1,49 @@
 import cv2
-import mediapipe as mp
-import tkinter as tk
-import threading
-from tkinter import Label
-from PIL import Image, ImageTk
+import numpy as np
+import tensorflow as tf
+from pathlib import Path
 
-mp_hands = mp.solutions.hands
-mp_drawing = mp.solutions.drawing_utils
-hands = mp_hands.Hands(static_image_mode=False, max_num_hands=2, min_detection_confidence=0.7)
+BASE_DIR = Path(__file__).resolve().parent.parent
+# Cargar el modelo entrenado
+model = tf.keras.models.load_model(f'{BASE_DIR}/hand_gesture_number_model.h5')
 
+# Inicializar captura de video
 cap = cv2.VideoCapture(0)
 
-root = tk.Tk()
-root.title("Detección de Manos en Tiempo Real")
-root.geometry("800x600")
+# Clase a número (etiquetas)
+labels = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'Unknown']
 
-camera_label = Label(root)
-camera_label.pack()
-
-def actualizar_frame():
+while True:
     ret, frame = cap.read()
     if not ret:
-        return
+        break
 
+    # Voltear la imagen para mejor experiencia de usuario
     frame = cv2.flip(frame, 1)
-    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    
-    results = hands.process(rgb_frame)
 
-    if results.multi_hand_landmarks:
-        for hand_landmarks in results.multi_hand_landmarks:
-            mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+    # Definir una región de interés (ROI) donde se espera la mano
+    roi = frame[100:400, 100:400]
+    cv2.rectangle(frame, (100, 100), (400, 400), (0, 255, 0), 2)
 
-    img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-    imgtk = ImageTk.PhotoImage(image=img)
-    
-    camera_label.imgtk = imgtk
-    camera_label.configure(image=imgtk)
-    
-    camera_label.after(10, actualizar_frame)
+    # Preprocesar la ROI para hacer la predicción
+    img = cv2.resize(roi, (64, 64))
+    img = img / 255.0  # Normalizar la imagen
+    img = np.expand_dims(img, axis=0)
 
-def iniciar_video():
-    actualizar_frame()
+    # Realizar la predicción
+    prediction = model.predict(img)
+    class_index = np.argmax(prediction)
+    label = labels[class_index]
 
-thread = threading.Thread(target=iniciar_video)
-thread.daemon = True
-thread.start()
+    # Mostrar la predicción en la ventana
+    cv2.putText(frame, f'Numero: {label}', (100, 90), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
-root.mainloop()
+    # Mostrar el frame
+    cv2.imshow('Reconocimiento de Numeros', frame)
+
+    # Salir al presionar 'q'
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
 
 cap.release()
+cv2.destroyAllWindows()
