@@ -1,0 +1,14 @@
+[flake8]
+exclude =
+    .git,
+    .gitignore,
+    *.pot,
+    *.py[co],
+    __pycache__,
+    venv,
+    .env,
+    */migrations/*.py
+    local_settings.py
+
+per-file-ignores =
+    supertrack/settings.py:E501,F403,F401
